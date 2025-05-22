@@ -8,7 +8,7 @@ on:
   push:
 
   # Run on pull requests
-  pull_request:
+  ## pull_request:  # In practice this duplicates run on push.
 
   ## Future Ideas:
   ## PR make it 10 or less
@@ -22,6 +22,10 @@ on:
 # Configuration for the version of external packages
 # We do this so we can cache them and avoid checking out that big
 # repository at all times.
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   EXTERNAL_PACKAGES_VERSION: main

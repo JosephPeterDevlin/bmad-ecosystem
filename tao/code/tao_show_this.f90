@@ -164,13 +164,13 @@ character(3) undef_str
 character(6) :: mode(4) = [character(6):: 'a-mode', 'b-mode', 'c-mode', 'spin']
 character(9) angle_str
 character(16) velocity_fmt, momentum_fmt, e_field_fmt, b_field_fmt, position_fmt, energy_fmt
-character(16) spin_fmt, t_fmt, twiss_fmt, disp_fmt, str1, str2, where
+character(16) spin_fmt, t_fmt, twiss_fmt, disp_fmt, str1, str2, where, output_type
 character(24) show_name, show2_name, what_to_show
-character(24) :: var_name, blank_str = '', phase_units_str, val_str
+character(24) :: blank_str = '', phase_units_str, val_str
 character(24) :: plane, imt, imt2, lmt, lmt2, amt, iamt, ramt, f3mt, rmt, rmt2, rmt3, irmt, iimt
 character(40) ele_name, ele1_name, ele2_name, ele_ref_name, b_name, param_name, uni_str
 character(40) replacement_for_blank, component, s_fmt
-character(60) aname, myname
+character(60) var_name, aname, myname, style
 character(100) :: word1, word2, fmt, fmt2, fmt3, switch, why_invalid
 character(200) header, str, attrib0, file_name, name, excite_zero(3), veto
 character(200), allocatable :: alloc_lines(:)
@@ -192,8 +192,8 @@ integer, allocatable :: ix_c(:), ix_remove(:)
 logical bmad_format, good_opt_only, print_wall, show_lost, logic, aligned, undef_uses_column_format, print_debug
 logical err, found, first_time, by_s, print_header_lines, all_lat, limited, show_labels, do_calc, flip, show_energy
 logical show_sym, show_line, show_shape, print_data, ok, print_tail_lines, print_slaves, print_super_slaves
-logical show_all, name_found, print_taylor, print_rad, print_attributes, err_flag, angle_units, map_calc
-logical print_ptc, called_from_pipe_cmd, print_eigen, show_mat, show_q, print_rms, do_inverse
+logical show_all, name_found, print_taylor, print_rad, print_attributes, err_flag, angle_units, map_calc, clean
+logical print_ptc, force_use_ptc, called_from_pipe_cmd, print_eigen, show_mat, show_q, print_rms, do_inverse
 logical valid_value, print_floor, show_section, is_complex, print_header, print_by_uni, do_field, delim_found
 logical, allocatable :: picked_uni(:), valid(:), picked2(:)
 logical, allocatable :: picked_ele(:)
@@ -2040,6 +2040,8 @@ case ('field')
       cycle
     endif
 
+    if (size(lines) < nl + 20) call re_allocate (lines, nl + 100) 
+
     !
 
     call init_coord (orb, orb, ele, downstream_end$)
@@ -2536,10 +2538,10 @@ case ('history')
   !
 
   if (n_print < 1) return
-  n_ele = max(1, s%com%ix_history - n_print + 1)
-
   n_count = n_print - s%com%ix_history
-  if (n_count > 0 .and. show_all) then
+
+  ! If commands from previous sessions wanted...
+  if (n_count > 0 .and. show_all) then  
     iu = lunget()
     call fullfilename(s%global%history_file, file_name)
     open (iu, file = file_name, status = 'old', iostat = ios)
@@ -2561,21 +2563,23 @@ case ('history')
       endif
     enddo
 
-  !
-  else
+  ! Here if commands from previous sessions not printed. 
+  else 
+    ix = max(1, s%com%ix_history - n_print + 1)
+
     do
-      if (n_ele > s%com%ix_history) exit
+      if (ix > s%com%ix_history) exit
       if (nl >= size(lines)) call re_allocate (lines, 2*size(lines))
 
-      if (s%history(n_ele)%ix /= 0) then
+      if (s%history(ix)%ix /= 0) then
         if (show_labels) then
-          nl=nl+1; write (lines(nl), '(i5, 2a)') s%history(n_ele)%ix, ': ', trim(s%history(n_ele)%cmd)
+          nl=nl+1; write (lines(nl), '(i5, 2a)') s%history(ix)%ix, ': ', trim(s%history(ix)%cmd)
         else
-          nl=nl+1; write (lines(nl), '(a)') s%history(n_ele)%cmd
+          nl=nl+1; write (lines(nl), '(a)') s%history(ix)%cmd
         endif
       endif
 
-      n_ele = n_ele + 1
+      ix = ix + 1
     enddo
 
     nl=nl+1; lines(nl) = ''
@@ -3340,9 +3344,9 @@ case ('lattice')
 
   else
     select case (where)
-    case ('exit');      line1 = '# Values shown are for the Downstream End of each Element (Girder at ref point):'
-    case ('middle');    line1 = '# Values shown are for the Center of each Element (Girder at ref point):'
-    case ('beginning'); line1 = '# Values shown are for the Upstream of each Element (Girder at ref point):'
+    case ('exit');      line1 = '# Values shown are for the Downstream End of each Element (Girder elements shown at ref point):'
+    case ('middle');    line1 = '# Values shown are for the Center of each Element (Girder elements shown at ref point):'
+    case ('beginning'); line1 = '# Values shown are for the Upstream of each Element (Girder elements shown at ref point):'
     end select
 
     if (size(lat%branch) > 1) line1 = '# Branch ' // int_str(branch%ix_branch) // '.' // line1(2:)
@@ -5017,15 +5021,17 @@ case ('symbolic_numbers')
 case ('taylor_map', 'matrix')
 
   ix_branch = s%global%default_branch
-  by_s = .false.
-  print_ptc = .false.
+  where = 'ELE_LOCS' ! "S_LOCS", "ELE_LIST", "ELE_LOCS" 
   print_eigen = .false.
-  disp_fmt = ''
-  fmt = ''
   angle_units = .false.
+  force_use_ptc = .false.
+  do_inverse = .false.
+  clean = .true.
+  output_type = 'TAYLOR_STANDARD'  ! "BMAD_LATTICE_FORMAT", "SCIBMAD", "RADIATION", "MATRIX", "TAYLOR_STANDARD"
+  fmt = ''
   ele1_name = ''
   ele2_name = ''
-  do_inverse = .false.
+  style = ''
 
   if (show_what == 'matrix') then
     n_order = 1
@@ -5036,7 +5042,7 @@ case ('taylor_map', 'matrix')
   do
     call tao_next_switch (what2, [character(20):: '-order', '-s', '-ptc', '-eigen_modes', '-elements', &
               '-lattice_format', '-universe', '-angle_coordinates', '-number_format', '-inverse', &
-              '-radiation'], .true., switch, err)
+              '-radiation', '-scibmad', '-noclean'], .true., switch, err)
     if (err) return
     if (switch == '') exit
 
@@ -5044,14 +5050,22 @@ case ('taylor_map', 'matrix')
     case ('-angle_coordinates')
       angle_units = .true.
 
+    case ('-noclean')
+      clean = .false.
+
     case ('-eigen_modes')
       print_eigen = .true.
+
+    case ('-elements')
+      output_type = 'ELEMENTS'
+      call tao_next_word(what2, ele_name)
+      if (n_order == -1) n_order = 1
 
     case ('-inverse')
       do_inverse = .true.
 
     case ('-lattice_format')
-      disp_fmt = 'BMAD'
+      output_type = 'BMAD_LATTICE_FORMAT'
 
     case ('-number_format')
       call tao_next_word(what2, fmt)
@@ -5063,27 +5077,22 @@ case ('taylor_map', 'matrix')
         nl=1; lines(1) = 'CANNOT READ ORDER NUMBER!'
         return
       endif
-
-      if (n_order > ptc_private%taylor_order_ptc) then
-        nl=1; write(lines(nl), '(a, i0)') &
-                  'TAYLOR ORDER CANNOT BE ABOVE ORDER USED IN CALCULATIONS WHICH IS ', ptc_private%taylor_order_ptc
-        return
-      endif
+      if (n_order < 2 .and. output_type == 'TAYLOR_STANDARD') output_type = 'MATRIX'
 
     case ('-ptc')
-      print_ptc = .true.
+      force_use_ptc = .true.
 
     case ('-radiation')
-      disp_fmt = 'RADIATION'
-
-    case ('-elements')
-      disp_fmt = 'ELEMENTS'
-      call tao_next_word(what2, ele_name)
-      if (n_order == -1) n_order = 1
+      output_type = 'RADIATION'
 
     case ('-s')
-      by_s = .true.
+      where = "S_LOC"
 
+    case ('-scibmad')
+      output_type = 'SCIBMAD'
+      style = 'SCIBMAD'
+      call tao_next_word(what2, var_name)
+      
     case ('-universe')
       call tao_next_word(what2, aname)
       read (aname, *, iostat = ios) ix
@@ -5106,15 +5115,24 @@ case ('taylor_map', 'matrix')
     end select
   enddo
 
-  if (by_s .and. print_ptc) then
-    nl=1; lines(1) = 'ERROR: "-ptc" AND "-s" SWITCHES CANNOT BOTH BE PRESENT.'
+  !
+
+  if (n_order == -1) n_order = ptc_private%taylor_order_ptc
+
+  if (where == "ELE_LIST" .and. output_type == "RADIATION") then
+    nl=1; lines(1) = 'ERROR: "-radiation" AND "-elements" SWITCHES CANNOT BOTH BE PRESENT.'
+    return
+  endif
+
+  if (where == "S_LOC" .and. output_type == "RADIATION") then
+    nl=1; lines(1) = 'ERROR: "-radiation" AND "-s" SWITCHES CANNOT BOTH BE PRESENT.'
     return
   endif
 
   !---------------------------------------
   ! By s
 
-  if (by_s) then
+  if (where == "S_LOC") then
     if (ele1_name == '') then
       s2 = lat%ele(lat%n_ele_track)%s
       s1 = 0
@@ -5141,10 +5159,10 @@ case ('taylor_map', 'matrix')
 
     call twiss_and_track_at_s (lat, s1, ele0, u%model%tao_branch(ix_branch)%orbit, orb, ix_branch)
 
-    if (n_order > 1 .or. print_ptc) then
+    if (n_order > 1 .or. force_use_ptc) then
       call transfer_map_from_s_to_s (lat, taylor, s1, s2, orb, orb2, ix_branch = ix_branch, &
                                                         one_turn = .true., concat_if_possible = s%global%concatenate_maps)
-      call taylor_to_mat6(taylor, u%model%tao_branch(ix_branch)%orbit(ix1)%vec, vec0, mat6)
+      call taylor_to_mat6(taylor, orb%vec, vec0, mat6)
       ref_vec = taylor%ref
     else
       call mat6_from_s_to_s (lat, mat6, vec0, s1, s2, orb, orb2, ix_branch, one_turn = .true.)
@@ -5152,14 +5170,14 @@ case ('taylor_map', 'matrix')
     endif
 
     if (do_inverse) then
-      if (n_order > 1 .or. print_ptc) call taylor_inverse (taylor, taylor)
+      if (n_order > 1 .or. force_use_ptc) call taylor_inverse (taylor, taylor)
       call mat_inverse(mat6, mat6, vec0, vec0)
       ref_vec = orb2%vec
     endif
 
   !
 
-  elseif (disp_fmt /= 'ELEMENTS') then
+  elseif (where == 'ELE_LOCS') then
 
     if (ele1_name == '') then
       ix2 = lat%n_ele_track
@@ -5220,72 +5238,73 @@ case ('taylor_map', 'matrix')
         return
       endif
     endif
+  endif
 
     !---------------------------------------
     ! Radiation
 
-    if (disp_fmt == 'RADIATION') then
-      if (.not. s%global%rf_on) then
-        nl=nl+1; lines(nl) = 'Note: RF IS TURNED OFF!'
-        nl=nl+1; lines(nl) = '   TO TURN ON USE: "set global rf_on = T"'
-      endif
-
-      if (.not. associated (branch%ptc%m_t_layout)) call lat_to_ptc_layout (lat)
-      if (print_ptc) then
-        call ptc_setup_map_with_radiation (rad_map, branch%ele(ix1), branch%ele(ix2), 1, .true.)
-      else
-        call ptc_setup_map_with_radiation (rad_map, branch%ele(ix1), branch%ele(ix2), &
-                                           1, .true., orbit1 = u%model%tao_branch(ix_branch)%orbit(ix1))
-      endif
-      rmap => rad_map%sub_map
-      nl=nl+1; write (lines(nl), '(a, 6es16.8)') 'Ref_orb_start: ', rmap(1)%fix0
-      nl=nl+1; write (lines(nl), '(a, 6es16.8)') 'Ref_orb_end:   ', rmap(1)%fix
-      nl=nl+1; lines(nl) = ''
-      nl=nl+1; call mat_type (rad_map%nodamp_mat, 0, 'T-Matrix without Damping. Symplectic Error: ' // real_str(mat_symp_error(rad_map%nodamp_mat), 6), '(4x, 6es16.8)', lines(nl:), n)
-      nl=nl+7; lines(nl) = ''
-      nl=nl+1; call mat_type (rad_map%damp_mat, 0, 'D-Damping Matrix. Damp Factor: ' // real_str((1-determinant(rad_map%damp_mat))/10, 6), '(4x, 6es16.8)', lines(nl:), n)
-      nl=nl+7; lines(nl) = ''
-      nl=nl+1; call mat_type (rad_map%stoc_mat, 0, 'S-Radiation Matrix:', '(4x, 6es16.8)', lines(nl:), n)
-      nl=nl+6
-      return
+  if (output_type == 'RADIATION') then
+    if (.not. s%global%rf_on) then
+      nl=nl+1; lines(nl) = 'Note: RF IS TURNED OFF!'
+      nl=nl+1; lines(nl) = '   TO TURN ON USE: "set global rf_on = T"'
     endif
 
-    !---------------------------------------
+    if (.not. associated (branch%ptc%m_t_layout)) call lat_to_ptc_layout (lat)
 
-    if (disp_fmt /= 'ELEMENTS') then
-      if (ele2_name == '') then
-        nl=nl+1; lines(nl) = 'From: ' // trim(branch%ele(ix1)%name)
-        nl=nl+1; lines(nl) = 'To:   ' // trim(branch%ele(ix2)%name)
-      endif
+    ! Use PTC or Bmad closed orbit for the radiation calculation?
+    if (force_use_ptc) then
+      call ptc_setup_map_with_radiation (rad_map, branch%ele(ix1), branch%ele(ix2), 1, .true.)
+    else
+      call ptc_setup_map_with_radiation (rad_map, branch%ele(ix1), branch%ele(ix2), &
+                                         1, .true., orbit1 = u%model%tao_branch(ix_branch)%orbit(ix1))
+    endif
+    rmap => rad_map%sub_map
+    nl=nl+1; write (lines(nl), '(a, 6es16.8)') 'Ref_orb_start: ', rmap(1)%fix0
+    nl=nl+1; write (lines(nl), '(a, 6es16.8)') 'Ref_orb_end:   ', rmap(1)%fix
+    nl=nl+1; lines(nl) = ''
+    nl=nl+1; call mat_type (rad_map%nodamp_mat, 0, 'T-Matrix without Damping. Symplectic Error: ' // real_str(mat_symp_error(rad_map%nodamp_mat), 6), '(4x, 6es16.8)', lines(nl:), n)
+    nl=nl+7; lines(nl) = ''
+    nl=nl+1; call mat_type (rad_map%damp_mat, 0, 'D-Damping Matrix. Damp Factor: ' // real_str((1-determinant(rad_map%damp_mat))/10, 6), '(4x, 6es16.8)', lines(nl:), n)
+    nl=nl+7; lines(nl) = ''
+    nl=nl+1; call mat_type (rad_map%stoc_mat, 0, 'S-Radiation Matrix:', '(4x, 6es16.8)', lines(nl:), n)
+    nl=nl+6
+    return
+  endif
 
-      if (n_order > 1 .or. print_ptc) then
-        call transfer_map_calc (lat, taylor, err, ix1, ix2, u%model%tao_branch(ix_branch)%orbit(ix1), ix_branch, &
-                                                        one_turn = .true., concat_if_possible = s%global%concatenate_maps)
-        if (err) then
-          nl = 1; lines(1) = 'TAYLOR MAP TERM OVERFLOW.'
-          return
-        endif
+  !---------------------------------------
 
-        call taylor_to_mat6(taylor, u%model%tao_branch(ix_branch)%orbit(ix1)%vec, vec0, mat6)
-        ref_vec = u%model%tao_branch(ix_branch)%orbit(ix1)%vec
-
-      else
-        call transfer_matrix_calc (lat, mat6, vec0, ix1, ix2, ix_branch, one_turn = .true.)
-        ref_vec = u%model%tao_branch(ix_branch)%orbit(ix1)%vec
-      endif
+  if (where == 'ELE_LOCS') then
+    if (ele2_name == '') then
+      nl=nl+1; lines(nl) = 'From: ' // trim(branch%ele(ix1)%name)
+      nl=nl+1; lines(nl) = 'To:   ' // trim(branch%ele(ix2)%name)
     endif
 
-    if (do_inverse) then
-      if (n_order > 1 .or. print_ptc) call taylor_inverse (taylor, taylor)
-      call mat_inverse(mat6, mat6, vec0, vec0)
-      ref_vec = u%model%tao_branch(ix_branch)%orbit(ix2)%vec
-    endif
+    if (output_type /= 'MATRIX' .or. force_use_ptc) then
+      call transfer_map_calc (lat, taylor, err, ix1, ix2, u%model%tao_branch(ix_branch)%orbit(ix1), ix_branch, &
+                                                      one_turn = .true., concat_if_possible = s%global%concatenate_maps)
+      if (err) then
+        nl = 1; lines(1) = 'TAYLOR MAP TERM OVERFLOW.'
+        return
+      endif
 
+      call taylor_to_mat6(taylor, u%model%tao_branch(ix_branch)%orbit(ix1)%vec, vec0, mat6)
+      ref_vec = u%model%tao_branch(ix_branch)%orbit(ix1)%vec
+
+    else
+      call transfer_matrix_calc (lat, mat6, vec0, ix1, ix2, ix_branch, one_turn = .true.)
+      ref_vec = u%model%tao_branch(ix_branch)%orbit(ix1)%vec
+    endif
+  endif
+
+  if (do_inverse) then
+    if (output_type /= 'MATRIX' .or. force_use_ptc) call taylor_inverse (taylor, taylor)
+    call mat_inverse(mat6, mat6, vec0, vec0)
+    ref_vec = u%model%tao_branch(ix_branch)%orbit(ix2)%vec
   endif
 
   ! Print results
 
-  if (disp_fmt == 'ELEMENTS') THEN
+  if (output_type == 'ELEMENTS') THEN
     call tao_locate_elements (ele_name, u%ix_uni, eles, err)
     if (err .or. size(eles) == 0) return
 
@@ -5300,7 +5319,7 @@ case ('taylor_map', 'matrix')
       nl=nl+1; write (lines(nl), '(4a)') 'Element: ', trim(ele%name), ' ', ele_loc_name(ele, .false., '()')
       if (size(lines) < nl+400) call re_allocate(lines, 2*size(lines))
 
-      if (n_order == 1) then
+      if (output_type == 'MATRIX') then
         mat6 = ele%mat6
         vec0 = ele%vec0
 
@@ -5314,7 +5333,7 @@ case ('taylor_map', 'matrix')
 
         if (fmt /= '') then
           fmt2 = '(6' // trim(fmt) // ', a, ' // trim(fmt) // ')'
-        elseif (any(abs(mat6(1:n_order,1:n_order)) >= 1000)) then
+        elseif (any(abs(mat6) >= 1000)) then
           fmt2 = '(6es15.7, a, es15.7)'
         else
           fmt2 = '(6f15.8, a, es15.7)'
@@ -5324,12 +5343,12 @@ case ('taylor_map', 'matrix')
           nl=nl+1; write(lines(nl), fmt2, iostat = ios) mat6(j,:), '   : ', vec0(j)
         enddo
 
-      else  ! n_order /= 1
+      else  ! output_type /= 'MATRIX'
         i0 = ele%ix_ele-1
         call transfer_map_calc (lat, taylor, err, i0, ele%ix_ele, u%model%tao_branch(ix_branch)%orbit(i0), ele%ix_branch)
         if (do_inverse) call taylor_inverse(taylor, taylor)
         call truncate_taylor_to_order (taylor, n_order, taylor)
-        call type_taylors (taylor, lines = alloc_lines, n_lines = n, clean = .true.)
+        call type_taylors (taylor, n_order, alloc_lines, n, out_style = style, clean = clean, out_var_suffix = var_name)
         do j = 1, n
           nl=nl+1; lines(nl) = alloc_lines(j)
         enddo
@@ -5337,15 +5356,15 @@ case ('taylor_map', 'matrix')
     enddo
 
   else
-    if (n_order > 1) then
+    if (output_type /= 'MATRIX') then
       if (angle_units) call map_to_angle_coords (taylor, taylor)
       if (n_order > 1) call truncate_taylor_to_order (taylor, n_order, taylor)
-      call type_taylors (taylor, lines = lines, n_lines = nl, clean = .true.)
+      call type_taylors (taylor, n_order, lines, n_lines = nl, out_style = style, clean = clean, out_var_suffix = var_name)
       if (print_eigen) call taylor_to_mat6 (taylor, taylor%ref, vec0, mat6)
 
-    elseif (disp_fmt == 'BMAD') then
+    elseif (output_type == 'BMAD_LATTICE_FORMAT') then
       call mat6_to_taylor (vec0, mat6, taylor, ref_vec)
-      call type_taylors (taylor, lines = lines, n_lines = nl, clean = .true.)
+      call type_taylors (taylor, n_order, lines, nl, out_style = style, clean = clean, out_var_suffix = var_name)
 
     else
       if (angle_units) then
@@ -5360,7 +5379,7 @@ case ('taylor_map', 'matrix')
       else
         if (fmt /= '') then
           fmt2 = '(6' // trim(fmt) // ', a, ' // trim(fmt) // ')'
-        elseif (any(abs(mat6(1:n_order,1:n_order)) >= 1000)) then
+        elseif (any(abs(mat6) >= 1000)) then
           fmt2 = '(6es15.7, a, es15.8)'
         else
           fmt2 = '(6f15.8, a, es15.8)'
@@ -5395,6 +5414,13 @@ case ('taylor_map', 'matrix')
       enddo
       nl = nl-1
     endif  
+  endif
+
+  !
+
+  if (n_order > ptc_private%taylor_order_ptc) then
+    nl=nl+1; write(lines(nl), '(a, i0)') 'NOTE: -order value is above order used in calculations which is ', ptc_private%taylor_order_ptc
+    nl=nl+1; write(lines(nl), '(a, i0)') '      Thus the -order value is ignored.'
   endif
 
 !----------------------------------------------------------------------
@@ -5516,16 +5542,16 @@ case ('track')
     call track1 (tao_branch%orbit(ele%ix_ele-1), ele, ele%branch%param, orb2, track, err)
     call re_allocate(lines, nl+track%n_pt+10)
 
-    nl=nl+1; lines(nl) = '           |                 Tracked particle (Laboratory Coordinates)                     |         Strong Beam (Lab Coords)                            | Particle - Beam distance'
-    nl=nl+1; lines(nl) = '    s_body |       x            px           y            py           z            pz     | slice     x_center     y_center      x_sigma      y_sigma   |         dx           dy'
+    nl=nl+1; lines(nl) = '                      |                 Tracked particle (Laboratory Coordinates)                     |         Strong Beam (Lab Coords)                            | Particle - Beam distance'
+    nl=nl+1; lines(nl) = '     s_lab     s_body |       x            px           y            py           z            pz     | slice     x_center     y_center      x_sigma      y_sigma   |         dx           dy'
 
     do i = 0, track%n_pt
       tp => track%pt(i)
       sb => tp%strong_beam
       if (sb%ix_slice == 0) then
-        nl=nl+1; write (lines(nl), '(f11.6, 1x, 6es13.5)') tp%s_body, tp%orb%vec
+        nl=nl+1; write (lines(nl), '(2f11.6, 1x, 6es13.5)') tp%s_lab, tp%s_body, tp%orb%vec
       else
-        nl=nl+1; write (lines(nl), '(f11.6, 1x, 6es13.5, i8, 2x, 4es13.5, 2x, 2es13.5)') tp%s_body, tp%orb%vec, &
+        nl=nl+1; write (lines(nl), '(2f11.6, 1x, 6es13.5, i8, 2x, 4es13.5, 2x, 2es13.5)') tp%s_lab, tp%s_body, tp%orb%vec, &
                                   sb%ix_slice, sb%x_center, sb%y_center, sb%x_sigma, sb%y_sigma, sb%dx, sb%dy
       endif
     enddo
@@ -5537,17 +5563,17 @@ case ('track')
   if (print_header_lines) then
     line1 = '#   Ix'
     i1 = 7
-    call write_track_header (line1, i1, s_fmt, ['S'], err); if (err) return
-    call write_track_header (line1, i1, t_fmt, ['Time'], err); if (err) return
+    call write_track_header (line1, i1, s_fmt,        ['S'], err); if (err) return
+    call write_track_header (line1, i1, t_fmt,        ['Time'], err); if (err) return
     call write_track_header (line1, i1, position_fmt, ['X', 'Y', 'Z'], err); if (err) return
     call write_track_header (line1, i1, velocity_fmt, ['Vx/c', 'Vy/c', 'Vs/c'], err); if (err) return
     call write_track_header (line1, i1, momentum_fmt, ['px', 'py', 'pz'], err); if (err) return
-    call write_track_header (line1, i1, energy_fmt, ['E_tot'], err); if (err) return
-    call write_track_header (line1, i1, twiss_fmt, ['Beta_a ', 'Alpha_a', 'Beta_b ', 'Alpha_b'], err); if (err) return
-    call write_track_header (line1, i1, disp_fmt, ['Eta_x ', 'Etap_x', 'Eta_y ', 'Etap_y'], err); if (err) return
-    call write_track_header (line1, i1, spin_fmt, ['Spin_x', 'Spin_y', 'Spin_z'], err); if (err) return
-    call write_track_header (line1, i1, b_field_fmt, ['Bx', 'By', 'Bz'], err); if (err) return
-    call write_track_header (line1, i1, e_field_fmt, ['Ex', 'Ey', 'Ez'], err); if (err) return
+    call write_track_header (line1, i1, energy_fmt,   ['E_tot'], err); if (err) return
+    call write_track_header (line1, i1, twiss_fmt,    ['Beta_a ', 'Alpha_a', 'Beta_b ', 'Alpha_b'], err); if (err) return
+    call write_track_header (line1, i1, disp_fmt,     ['Eta_x ', 'Etap_x', 'Eta_y ', 'Etap_y'], err); if (err) return
+    call write_track_header (line1, i1, spin_fmt,     ['Spin_x', 'Spin_y', 'Spin_z'], err); if (err) return
+    call write_track_header (line1, i1, b_field_fmt,  ['Bx', 'By', 'Bz'], err); if (err) return
+    call write_track_header (line1, i1, e_field_fmt,  ['Ex', 'Ey', 'Ez'], err); if (err) return
     nl=nl+1; lines(nl) = line1
   endif
 
@@ -5570,7 +5596,7 @@ case ('track')
     i1 = 7
 
     call write_track_info (line1, i1, s_fmt, [s_pos], err);  if (err) return
-    call write_track_info (line1, i1, t_fmt, [orbit%t], err);  if (err) return
+    call write_track_info (line1, i1, t_fmt, [real(rp):: orbit%t], err);  if (err) return
     call write_track_info (line1, i1, position_fmt, orbit%vec(1:5:2), err);  if (err) return
 
     if (orbit%beta == 0) then

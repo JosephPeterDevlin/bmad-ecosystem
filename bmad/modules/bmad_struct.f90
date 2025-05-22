@@ -19,7 +19,7 @@ private next_in_branch
 ! IF YOU CHANGE THE LAT_STRUCT OR ANY ASSOCIATED STRUCTURES YOU MUST INCREASE THE VERSION NUMBER !!!
 ! THIS IS USED BY BMAD_PARSER TO MAKE SURE DIGESTED FILES ARE OK.
 
-integer, parameter :: bmad_inc_version$ = 329
+integer, parameter :: bmad_inc_version$ = 334
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -180,7 +180,7 @@ character(24) :: matrix_status_name(9) = [character(24) :: 'OK', 'IN_STOP_BAND',
 type twiss_struct
   real(rp) :: beta = 0, alpha = 0, gamma = 0, phi = 0, eta = 0, etap = 0, deta_ds = 0
   real(rp) :: sigma = 0, sigma_p = 0, emit = 0, norm_emit = 0
-  real(rp) :: dbeta_dpz = 0, dalpha_dpz = 0
+  real(rp) :: dbeta_dpz = 0, dalpha_dpz = 0, deta_dpz = 0, detap_dpz = 0
 end type
 
 ! Misc parameters
@@ -529,12 +529,10 @@ real(rp), parameter :: vec0$(6) = 0
 type coord_struct                 ! Particle coordinates at a single point
   real(rp) :: vec(6) = 0          ! (x, px, y, py, z, pz). Generally phase space for charged particles. See Bmad manual.
   real(rp) :: s = 0               ! Longitudinal position 
-  real(rp) :: t = 0               ! Absolute time (not relative to reference). If bmad_private%rf_clock_frequency is
-                                  ! set, %t will be the RF clock time in the range [0, 1/rf_clock_freq] 
+  real(qp) :: t = 0               ! Absolute time (not relative to reference). Note: Quad precision!
   real(rp) :: spin(3) = 0         ! Spin.
   real(rp) :: field(2) = 0        ! Photon E-field intensity (x,y).
-  real(rp) :: phase(2) = 0        ! Photon E-field phase (x,y). phase(1) is also used with 
-                                  !   RF-time tracking to record the number of RF cycles.
+  real(rp) :: phase(2) = 0        ! Photon E-field phase (x,y).
   real(rp) :: charge = 0          ! Macroparticle weight (which is different from particle species charge). 
                                   !   For some space charge calcs the weight is in Coulombs.
   real(rp) :: dt_ref = 0          ! Used in:
@@ -844,7 +842,7 @@ type high_energy_space_charge_struct
 end type    
 
 type xy_disp_struct
-  real(rp) :: eta = 0, etap = 0, deta_ds = 0, sigma = 0
+  real(rp) :: eta = 0, etap = 0, deta_ds = 0, sigma = 0, deta_dpz = 0, detap_dpz = 0
 end type
 
 ! Structure to hold the information of where an individual element is in the lattice.
@@ -1761,10 +1759,10 @@ integer, parameter :: eta_y_out$ = 26, mode$ = 26, velocity_distribution$ = 26, 
                       eps_step_scale$ = 26, E_tot_strong$ = 26, dthickness_dx$ = 26, bend_tilt$ = 26
 integer, parameter :: etap_x_out$ = 27, phi0_autoscale$ = 27, dx_origin$ = 27, energy_distribution$ = 27, &
                       x_quad$ = 27, ds_photon_slice$ = 27, mosaic_angle_rms_out_plane$ = 27, &
-                      py_aperture_center$ = 27, x_dispersion_err$ = 27, l_rectangle$ = 27
+                      py_aperture_center$ = 27, x_dispersion_err$ = 27, l_rectangle$ = 27, pc_strong$ = 27
 integer, parameter :: etap_y_out$ = 28, dy_origin$ = 28, y_quad$ = 28, e_field_x$ = 28, &
                       y_dispersion_err$ = 28, z_aperture_width2$ = 28, user_sets_length$ = 28, &
-                      rf_clock_harmonic$ = 28, b_field_tot$ = 28, atomic_weight$ = 28
+                      rf_clock_harmonic$ = 28, b_field_tot$ = 28
 integer, parameter :: upstream_coord_dir$ = 29, dz_origin$ = 29, mosaic_diffraction_num$ = 29, &
                       cmat_11$ = 29, field_autoscale$ = 29, l_sagitta$ = 29, e_field_y$ = 29, &
                       x_dispersion_calib$ = 29, z_aperture_center$ = 29, f_factor$ = 29
@@ -1775,7 +1773,7 @@ integer, parameter :: cmat_21$ = 31, l_active$ = 31, dphi_origin$ = 31, split_id
                       l_soft_edge$ = 31, transverse_sigma_cut$ = 31, pz_aperture_center$ = 31, &
                       mean_excitation_energy$ = 31, fiducial_pt$ = 31
 integer, parameter :: cmat_22$ = 32, dpsi_origin$ = 32, t_offset$ = 32, ds_slice$ = 32, use_reflectivity_table$ = 32, init_needed$ = 32
-integer, parameter :: angle$ = 33, n_cell$ = 33, mode_flip$ = 33, z_crossing$ = 33, x_kick$ = 33
+integer, parameter :: angle$ = 33, n_cell$ = 33, mode_flip$ = 33, crossing_time$ = 33, x_kick$ = 33
 integer, parameter :: x_pitch$ = 34, px_kick$ = 34   ! Note: [x_kick$, px_kick$, ..., pz_kick$] must be in order.
 integer, parameter :: y_pitch$ = 35, y_kick$ = 35
 integer, parameter :: x_offset$ = 36, py_kick$ = 36
@@ -1833,11 +1831,11 @@ integer, parameter :: lr_freq_spread$ = 85, y_ref$ = 85, etap_y$ = 85, &
 integer, parameter :: lattice$ = 86, phi_a$ = 86, multipoles_on$ = 86, py_ref$ = 86, &
                       area_density_used$ = 86, output_ele$ = 86
 integer, parameter :: aperture_type$ = 87, eta_z$ = 87, machine$ = 87
-integer, parameter :: taylor_map_includes_offsets$ = 88, pixel$ = 88, p88$ = 88, radiation_length$ = 88
-integer, parameter :: csr_method$ = 89, var$ = 89, z_ref$ = 89, p89$ = 89, radiation_length_used$ = 89
+integer, parameter :: taylor_map_includes_offsets$ = 88, pixel$ = 88, p88$ = 88, radiation_length$ = 88, deta_dpz_x$ = 88
+integer, parameter :: csr_method$ = 89, var$ = 89, z_ref$ = 89, p89$ = 89, radiation_length_used$ = 89, deta_dpz_y$ = 89
 
-integer, parameter :: pz_ref$ = 90, space_charge_method$ = 90, p90$ = 90
-integer, parameter :: mat6_calc_method$ = 91
+integer, parameter :: pz_ref$ = 90, space_charge_method$ = 90, p90$ = 90, detap_dpz_x$ = 90
+integer, parameter :: mat6_calc_method$ = 91, detap_dpz_y$ = 91
 integer, parameter :: tracking_method$  = 92, s_long$ = 92
 integer, parameter :: ref_time$ = 93, ptc_integration_type$ = 93
 integer, parameter :: spin_tracking_method$ = 94, eta_a$ = 94
@@ -1995,7 +1993,8 @@ type strong_beam_struct
 end type
 
 type track_point_struct
-  real(rp) s_body                                 ! Longitudinal coords within the element body.
+  real(rp) s_lab                                  ! Longitudinal lab coord with respect to the upstream end.
+  real(rp) s_body                                 ! Longitudinal body coord with respect to the entrance end.
   type (coord_struct) orb                         ! An array of track points indexed from 0 (%orb(0:)).
   type (em_field_struct) field                    ! An array of em fields indexed from 0 (%field(0:)).
   type (strong_beam_struct) strong_beam           ! Strong beam info for beambeam element.
@@ -2268,7 +2267,6 @@ type (bmad_common_struct), save, target :: bmad_com
 ! For communication between Bmad routines and Bmad based programs.
 
 type bmad_private_struct
-  real(rp) :: rf_clock_period = 0     ! The RF clock is used by the long_term_tracking program to avoid time round-off errors.
   logical :: random_on = .true.       ! Temporarily turned off, for example, with the closed orbit calc.
 end type
 
@@ -2617,6 +2615,7 @@ end function is_attribute
 !
 ! Also see:
 !   pointer_to_lord
+!   pointer_to_super_lord
 !   pointer_to_ele
 !   num_lords
 !

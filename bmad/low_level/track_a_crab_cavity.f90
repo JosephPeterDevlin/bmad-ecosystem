@@ -45,7 +45,7 @@ call multipole_ele_to_ab (ele, .false., ix_mag_max, an,      bn,      magnetic$,
 call multipole_ele_to_ab (ele, .false., ix_elec_max, an_elec, bn_elec, electric$)
 
 ref_ele => ele
-if (ref_ele%slave_status == super_slave$ .or. ele%slave_status == slice_slave$) ref_ele => pointer_to_lord(ele, 1)
+if (ref_ele%slave_status == super_slave$ .or. ele%slave_status == slice_slave$) ref_ele => pointer_to_super_lord(ele)
 dt_ref = ele%s_start - ref_ele%s_start
 
 !
@@ -67,8 +67,6 @@ k_rf = twopi * ele%value(rf_frequency$) / c_light
 h = mass_of(orbit%species)/ele%value(p0c$)
 
 ! Track through slices.
-! Note: phi0_autoscale is not used here since bmad_standard tracking by design gives the correct energy change.
-! In fact, using phi0_autoscale would be a mistake if, say, tracking_method = runge_kutta, mat6_calc_method = bmad_standard.
 
 call track_this_drift(orbit, dl/2, ele, phase, mat6, make_matrix)
 

@@ -583,10 +583,10 @@ subroutine tao_pointer_to_universes (name_in, unis, err, name_out, explicit_uni,
   logical, optional :: explicit_uni
 end subroutine
 
-function tao_param_value_at_s (dat_name, ele, orbit, err_flag, why_invalid, print_err, bad_datum) result (value)
+function tao_param_value_at_s (dat_name, ele_to_s, ele_here, orbit, err_flag, why_invalid, print_err, bad_datum) result (value)
   import
   implicit none
-  type (ele_struct) ele
+  type (ele_struct) ele_to_s, ele_here
   type (coord_struct) orbit
   real(rp) value
   character(*) dat_name
@@ -1006,7 +1006,16 @@ function tao_hook_curve_s_pt_def (s_default, ix_now, x1, x2, n_pts, tao_lat, cur
   real(rp) s_default, x1, x2, s_pt
   integer ix_now, n_pts
 end function
- 
+
+function tao_hook_data_sanity_check_def (found, datum, print_err, default_data_type, uni) result (is_valid)
+  import
+  implicit none
+  type (tao_data_struct) datum
+  type (tao_universe_struct), optional, target :: uni
+  logical found, print_err, is_valid
+  character(*) default_data_type
+end function
+
 subroutine tao_hook_draw_floor_plan_def (plot, graph)
   import
   implicit none
@@ -1144,6 +1153,7 @@ end interface  ! abstract
 procedure(tao_hook_branch_calc_def), pointer :: tao_hook_branch_calc_ptr => null()
 procedure(tao_hook_command_def), pointer :: tao_hook_command_ptr => null()
 procedure(tao_hook_curve_s_pt_def), pointer :: tao_hook_curve_s_pt_ptr => null()
+procedure(tao_hook_data_sanity_check_def), pointer :: tao_hook_data_sanity_check_ptr => null()
 procedure(tao_hook_draw_floor_plan_def), pointer :: tao_hook_draw_floor_plan_ptr => null()
 procedure(tao_hook_draw_graph_def), pointer :: tao_hook_draw_graph_ptr => null()
 procedure(tao_hook_evaluate_a_datum_def), pointer :: tao_hook_evaluate_a_datum_ptr => null()

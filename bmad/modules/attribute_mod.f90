@@ -883,12 +883,13 @@ call init_attribute_name1 (beambeam$, crab_x3$,                     'CRAB_X3')
 call init_attribute_name1 (beambeam$, crab_x4$,                     'CRAB_X4')
 call init_attribute_name1 (beambeam$, crab_x5$,                     'CRAB_X5')
 call init_attribute_name1 (beambeam$, crab_tilt$,                   'CRAB_TILT')
-call init_attribute_name1 (beambeam$, z_crossing$,                  'Z_CROSSING')
+call init_attribute_name1 (beambeam$, crossing_time$,               'CROSSING_TIME')
 call init_attribute_name1 (beambeam$, s_twiss_ref$,                 'S_TWISS_REF')
 call init_attribute_name1 (beambeam$, repetition_frequency$,        'REPETITION_FREQUENCY')
 call init_attribute_name1 (beambeam$, rf_clock_harmonic$,           'rf_clock_harminic', private$)
 call init_attribute_name1 (beambeam$, species_strong$,              'SPECIES_STRONG')
 call init_attribute_name1 (beambeam$, e_tot_strong$,                'E_TOT_STRONG')
+call init_attribute_name1 (beambeam$, pc_strong$,                   'PC_STRONG')
 
 call init_attribute_name1 (beginning_ele$, l$,                           'l', private$)
 call init_attribute_name1 (beginning_ele$, delta_ref_time$,              'delta_ref_time', private$)
@@ -911,6 +912,10 @@ call init_attribute_name1 (beginning_ele$, dbeta_dpz_a$,                 'DBETA_
 call init_attribute_name1 (beginning_ele$, dbeta_dpz_b$,                 'DBETA_DPZ_B')
 call init_attribute_name1 (beginning_ele$, dalpha_dpz_a$,                'DALPHA_DPZ_A')
 call init_attribute_name1 (beginning_ele$, dalpha_dpz_b$,                'DALPHA_DPZ_B')
+call init_attribute_name1 (beginning_ele$, deta_dpz_x$,                  'DETA_DPZ_X')
+call init_attribute_name1 (beginning_ele$, deta_dpz_y$,                  'DETA_DPZ_Y')
+call init_attribute_name1 (beginning_ele$, detap_dpz_x$,                 'DETAP_DPZ_X')
+call init_attribute_name1 (beginning_ele$, detap_dpz_y$,                 'DETAP_DPZ_Y')
 call init_attribute_name1 (beginning_ele$, eta_x$,                       'ETA_X')
 call init_attribute_name1 (beginning_ele$, eta_y$,                       'ETA_Y')
 call init_attribute_name1 (beginning_ele$, eta_z$,                       'ETA_Z')
@@ -1055,7 +1060,6 @@ call init_attribute_name1 (foil$, x2_edge$,                         'X2_EDGE')
 call init_attribute_name1 (foil$, y1_edge$,                         'Y1_EDGE')
 call init_attribute_name1 (foil$, y2_edge$,                         'Y2_EDGE')
 call init_attribute_name1 (foil$, dthickness_dx$,                   'DTHICKNESS_DX')
-call init_attribute_name1 (foil$, atomic_weight$,                   'ATOMIC_WEIGHT')
 call init_attribute_name1 (foil$, f_factor$,                        'F_FACTOR')
 call init_attribute_name1 (foil$, num_steps$,                       'NUM_STEPS')
 
@@ -2019,14 +2023,14 @@ case ('AREA_DENSITY', 'AREA_DENSITY_USED', 'RADIATION_LENGTH', 'RADIATION_LENGTH
   attrib_units = 'kg/m^2'
 
 case ('ALPHA_A', 'ALPHA_A0', 'ALPHA_A1', 'ALPHA_ANGLE', 'ALPHA_B', 'ALPHA_B0', 'ALPHA_B1', &
-      'BBI_CONSTANT', 'B_PARAM', 'ALPHA_A_STRONG', 'ALPHA_B_STRONG', 'N_PARTICLE', &
-      'CHARGE', 'CMAT_11', 'CMAT_12', 'CMAT_21', 'CMAT_22', 'COUPLER_STRENGTH', 'DE_ETA_MEAS', &
+      'BBI_CONSTANT', 'B_PARAM', 'ALPHA_A_STRONG', 'ALPHA_B_STRONG', 'N_PARTICLE', 'DTHICKNESS_DX', &
+      'CHARGE', 'CMAT_11', 'CMAT_12', 'CMAT_21', 'CMAT_22', 'COUPLER_STRENGTH', 'DE_ETA_MEAS', 'F_FACTOR', &
       'ELECTRIC_DIPOLE_MOMENT', 'ETAP_X', 'ETAP_X0', 'ETAP_X1', 'ETAP_Y', 'ETAP_Y0', 'ETAP_Y1', &
       'ETAP_X_OUT', 'ETAP_Y_OUT', 'EMIT_FRACTION', 'Y_KNOT', 'SLAVE', 'DALPHA_DPZ_A', 'DALPHA_DPZ_B', &
       'FIELD_AUTOSCALE', 'FIELD_SCALE_FACTOR', 'FIELD_X', 'FIELD_Y', 'FINT', 'FINTX', 'GAP', 'HARMON', 'HKICK', &
       'KICK', 'MAX_NUM_RUNGE_KUTTA_STEP', 'NOISE', 'N_PART', 'N_PERIOD', 'N_SAMPLE', 'N_SLICE_SPLINE', &
       'POLARITY', 'PX', 'PX0', 'PX1', 'PX_REF', 'PY', 'PY0', 'PY1', 'PY_REF', 'PZ', 'PZ0', 'PZ1', 'PZ_REF', &
-      'RAN_SEED', 'REF_CAP_GAMMA', 'REL_TOL_ADAPTIVE_TRACKING', 'REL_TOL_TRACKING', 'SIG_PZ', &
+      'RAN_SEED', 'REF_CAP_GAMMA', 'REL_TOL_ADAPTIVE_TRACKING', 'REL_TOL_TRACKING', 'SIG_PZ', 'DETAP_DPZ_X', 'DETAP_DPZ_Y', &
       'SPIN_X', 'SPIN_Y', 'SPIN_Z', 'TRANSVERSE_SIGMA_CUT', 'VKICK', 'LONGITUDINAL_MODE', 'MOSAIC_DIFFRACTION_NUM', &
       'AUTOSCALE_AMP_REL_TOL', 'PX_KICK', 'PY_KICK', 'PZ_KICK', 'SPIN_DN_DPZ_X', 'SPIN_DN_DPZ_Y', 'SPIN_DN_DPZ_Z', &
       'VAL1', 'VAL2', 'VAL3', 'VAL4', 'VAL5', 'VAL6', 'VAL7', 'VAL8', 'VAL9', 'VAL10', 'VAL11', 'VAL12', &
@@ -2043,7 +2047,7 @@ case ('ABS_TOL_ADAPTIVE_TRACKING', 'ABS_TOL_TRACKING', 'ACCORDION_EDGE', 'APERTU
       'DS_SLICE', 'DS_STEP', 'DX_ORIGIN', 'DY_ORIGIN', 'DZ_ORIGIN', 'D_SPACING', 'END_EDGE', 'EPS_STEP_SCALE', &
       'ETA_X_OUT', 'ETA_Y_OUT', 'CSR_DS_STEP', 'X_KICK', 'Y_KICK', 'Z_KICK', 'DBETA_DPZ_A', 'DBETA_DPZ_B', &
       'ETA_X', 'ETA_X0', 'ETA_X1', 'ETA_Y', 'ETA_Y0', 'ETA_Y1', 'ETA_Z', 'FATAL_DS_ADAPTIVE_TRACKING', &
-      'FB1', 'FB2', 'FQ1', 'FQ2', 'HGAP', 'HGAPX', 'H_DISPLACE', 'INIT_DS_ADAPTIVE_TRACKING', 'L', &
+      'FB1', 'FB2', 'FQ1', 'FQ2', 'HGAP', 'HGAPX', 'H_DISPLACE', 'INIT_DS_ADAPTIVE_TRACKING', 'L', 'DETA_DPZ_X', 'DETA_DPZ_Y', &
       'LORD_PAD1', 'LORD_PAD2', 'L_CHORD', 'L_ACTIVE', 'L_SOFT_EDGE', 'L_PERIOD', 'L_SAGITTA', 'MAX_APERTURE_LIMIT', &
       'MIN_DS_ADAPTIVE_TRACKING', 'OFFSET', 'PENDELLOSUNG_PERIOD_PI', 'PENDELLOSUNG_PERIOD_SIGMA', 'R0_ELEC', 'R0_MAG', &
       'REF_WAVELENGTH', 'RHO', 'S', 'SIGNIFICANT_LENGTH', 'SIG_X', 'SIG_Y', 'SIG_Z', 'S_POSITION', 'THICKNESS', &
@@ -2052,7 +2056,7 @@ case ('ABS_TOL_ADAPTIVE_TRACKING', 'ABS_TOL_TRACKING', 'ACCORDION_EDGE', 'APERTU
       'X_OFFSET_TOT', 'Y_OFFSET_TOT', 'X_POSITION', 'Y_POSITION', 'X_QUAD', 'Y_QUAD', &
       'X_REF', 'Y_REF', 'Z', 'Z0', 'Z1', 'Z_OFFSET', 'Z_OFFSET_TOT', 'Z_POSITION', 'Z_REF', 'MOSAIC_THICKNESS', &
       'C12_MAT0', 'C12_MAT1', 'X_GAIN_CALIB', 'Y_GAIN_CALIB', 'X_GAIN_ERR', 'Y_GAIN_ERR', 'RADIUS', &
-      'Z_APERTURE_WIDTH2', 'Z_APERTURE_CENTER', 'RF_WAVELENGTH', 'Z_CROSSING', &
+      'Z_APERTURE_WIDTH2', 'Z_APERTURE_CENTER', 'RF_WAVELENGTH', &
       'X1_EDGE', 'X2_EDGE', 'Y1_EDGE', 'Y2_EDGE', 'L_RECTANGLE', 'S_TWISS_REF', &
       'X_DISPERSION_ERR', 'Y_DISPERSION_ERR', 'X_DISPERSION_CALIB', 'Y_DISPERSION_CALIB')
   attrib_units = 'm'
@@ -2103,10 +2107,10 @@ case ('DBRAGG_ANGLE_DE')
 
 case ('DELTA_E', 'ENERGY', 'E_CENTER', 'E2_CENTER', 'E_LOSS', 'E_PHOTON', 'E_TOT', 'E_TOT_OFFSET', 'E_TOT_START', &
       'P0C', 'P0C_START', 'PC', 'P0C_SET', 'E_TOT_SET', 'AUTOSCALE_AMP_ABS_TOL', 'DELTA_E_REF', 'SIG_E', 'SIG_E2', &
-      'PC_OUT_MIN', 'PC_OUT_MAX', 'E_TOT_STRONG')
+      'PC_OUT_MIN', 'PC_OUT_MAX', 'E_TOT_STRONG', 'PC_STRONG')
   attrib_units = 'eV'
 
-case ('DELTA_REF_TIME', 'REF_TIME', 'REF_TIME_START', 'T', 'T_OFFSET', 'DELTA_TIME', 'DT_MAX')
+case ('DELTA_REF_TIME', 'REF_TIME', 'REF_TIME_START', 'T', 'T_OFFSET', 'DELTA_TIME', 'DT_MAX', 'CROSSING_TIME')
   attrib_units = 'sec'
 
 case ('EMITTANCE_A', 'EMITTANCE_B', 'EMITTANCE_Z')

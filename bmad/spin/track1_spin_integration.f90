@@ -281,8 +281,13 @@ type (ele_struct) ele
 type (lat_param_struct) param
 
 real(rp) entrance_orb(6), body_orb(6), exit_orb(6), quat(4), omega_vec(3)
+<<<<<<< HEAD
 real(rp) m, e, gma, anom, q, l, chi, xi, rel_p, x0, px0, y0, py0, k2, alpha, taux, tauy, xc, omegay, pr, upsilon, sigma, a2, b2, cc2, nu
 real(rp) ks, c, s, a, b, cc, zeta, sc, omega, k0, kx, g, k1, t, omegax, sx, cx, sy, cy, sh, ch, cx2, sx2, pry, eta, mu, iota, pl, xd
+=======
+real(rp) m, e, gma, anom, q, l, chi, xi, rel_p, x0, px0, y0, py0, k2, alpha, taux, tauy, xc, omegay, pr
+real(rp) ks, c, s, a, b, cc, zeta, sc, omega, e1, e2, k0, kx, g, k1, t, omegax, sx, cx, sy, cy, sh, ch
+>>>>>>> upstream/main
 integer key
 
 ! Constants
@@ -297,8 +302,11 @@ l = ele%value(l$)
 
 chi = 1.0_rp + anom*gma
 xi = anom*(gma - 1.0_rp)
+<<<<<<< HEAD
 iota = 2.0_rp*gma - 1.0_rp
 nu = 2.0_rp*(1.0_rp + anom) - chi
+=======
+>>>>>>> upstream/main
 
 entrance_orb = no_fringe_start%vec
 body_orb = start_orb%vec
@@ -311,13 +319,20 @@ py0 = body_orb(4)
 
 ! Spin tracking
 
+<<<<<<< HEAD
 quat(1) = 1.0_rp
+=======
+quat(1)= 1.0_rp
+>>>>>>> upstream/main
 quat(2) = 0.0_rp
 quat(3) = 0.0_rp
 quat(4) = 0.0_rp
 
 key = ele%key
+<<<<<<< HEAD
 if (key == solenoid$ .and. abs(ele%value(ks$)) < 1d-20) key = pipe$
+=======
+>>>>>>> upstream/main
 if (key == sbend$ .and. abs(ele%value(g$)) < 1d-20 .and. abs(ele%value(dg$)) < 1d-20) key = quadrupole$
 if (key == quadrupole$ .and. abs(ele%value(k1$)) < 1d-20) key = pipe$
 
@@ -341,6 +356,7 @@ case (solenoid$)
   a = a * xi/(8.0_rp*rel_p**2)
   
   b = ks*L*(2.0_rp*py0+ks*x0)
+<<<<<<< HEAD
   b = b + pr*(2.0_rp*(c-1.0_rp)*px0+2.0_rp*s*py0+c*ks*y0-ks*(s*x0+y0))
   b = -b * xi/(8.0_rp*rel_p**2)
   
@@ -355,6 +371,12 @@ case (solenoid$)
   cc2 = -cc2*pr*xi**2/(64.0_rp*rel_p**4)
    
   cc = cc + cc2
+=======
+  b = b + pr*(2.0_rp*(c-1.0_rp)*x0+2.0_rp*s*py0+c*ks*y0-ks*(s*x0+y0))
+  b = -b * xi/(8.0_rp*rel_p**2)
+  
+  cc = 0.5_rp*(1.0_rp+anom)*ks/rel_p*L
+>>>>>>> upstream/main
   
   zeta = sqrt(a**2 + b**2 + cc**2)
   sc = sinc(zeta)
@@ -364,9 +386,18 @@ case (solenoid$)
   quat(3) = b*sc
   quat(4) = cc*sc
   
+<<<<<<< HEAD
 ! SBend
 
 case (sbend$)
+=======
+  
+! SBend
+
+case (sbend$)
+  e1 = ele%value(e1$)
+  e2 = ele%value(e2$)
+>>>>>>> upstream/main
   k1 = ele%value(k1$)
   g = ele%value(g$)
   k0 = g + ele%value(dg$)
@@ -380,6 +411,7 @@ case (sbend$)
     xc = 0.0_rp
   endif
   
+<<<<<<< HEAD
   xd = x0-xc
   
   if (kx > 0) then
@@ -387,12 +419,20 @@ case (sbend$)
     sx = sin(omegax*L)/omegax
     cx2 = cos(omegax*L/2.0_rp)
     sx2 = sin(omegax*L/2.0_rp)
+=======
+  if (kx > 0) then
+    cx = cos(omegax*L)
+    sx = sin(omegax*L)/omegax
+>>>>>>> upstream/main
     taux = -1.0_rp
   elseif (kx < 0) then
     cx = cosh(omegax*L)
     sx = sinh(omegax*L)/omegax
+<<<<<<< HEAD
     cx2 = cosh(omegax*L/2.0_rp)
     sx2 = sinh(omegax*L/2.0_rp)
+=======
+>>>>>>> upstream/main
     taux = 1.0_rp
   else
     cx = 1.0_rp
@@ -401,6 +441,7 @@ case (sbend$)
   endif
 
   if (k1 == 0) then
+<<<<<<< HEAD
     upsilon = py0**2*xi-rel_p**2*chi
     pry = sqrt(rel_p**2-py0**2)
     if (g == 0) then
@@ -433,11 +474,32 @@ case (sbend$)
     quat(2) = a*sc
     quat(3) = b*sc
     quat(4) = cc*sc
+=======
+    if (g == 0) then
+      a = 0.5_rp*chi*L*k0/rel_p
+      b = -0.5_rp*xi*L*k0/rel_p*py0/rel_p
+    else
+      alpha = taux*(cx-1.0_rp)*g*px0
+      alpha = alpha + rel_p*omegax**2*(L*(1.0_rp+g*xc)+g*sx*(x0-xc))
+      alpha = alpha * k0/(2.0_rp*rel_p**2*omegax**2)
+    
+      a = chi*alpha - 0.5_rp*g*L
+      b = -xi*py0*alpha/rel_p
+    endif
+    
+    zeta = sqrt(a**2 + b**2)
+    sc = sinc(zeta)
+    
+    quat(1) = -cos(zeta)
+    quat(3) = a*sc
+    quat(4) = b*sc
+>>>>>>> upstream/main
     
   else
     if (k1 > 0) then
       cy = cosh(omegay*L)
       sy = sinh(omegay*L)/omegay
+<<<<<<< HEAD
     else
       cy = cos(omegay*L)
       sy = sin(omegay*L)/omegay
@@ -610,12 +672,30 @@ case (sbend$)
     print *, "C2: ", cc2
     
     zeta = sqrt(a**2 + b**2 + cc**2)
+=======
+      tauy = 1.0_rp
+    else
+      cy = cos(omegay*L)
+      sy = sin(omegay*L)/omegay
+      tauy = -1.0_rp
+    endif
+    
+    a = 0.5_rp*chi*k1/rel_p*(sy*y0+tauy*(cy-1.0_rp)/omegay**2*py0/rel_p)
+    b = 0.5_rp*chi*L*k0/rel_p-0.5_rp*g*L+0.5_rp*chi*kx/rel_p*(sx*(x0-xc)+L*xc+taux*(cx-1.0_rp)/omegax**2*px0/rel_p)
+    c = 0.5_rp*(1.0_rp+anom)*k0/rel_p*((cy-1.0_rp)*y0+sy*py0/rel_p)
+    
+    zeta = sqrt(a**2 + b**2 + c**2)
+>>>>>>> upstream/main
     sc = sinc(zeta)
     
     quat(1) = -cos(zeta)
     quat(2) = a*sc
     quat(3) = b*sc
+<<<<<<< HEAD
     quat(4) = cc*sc
+=======
+    quat(4) = c*sc
+>>>>>>> upstream/main
     
   endif 
   
@@ -632,6 +712,7 @@ case (quadrupole$)
   ch = cosh(omega*L)
  
   if (k1 > 0) then
+<<<<<<< HEAD
    cx = c
    sx = s/omega
    cy = ch
@@ -653,18 +734,39 @@ case (quadrupole$)
   (px0*py0*sx*sy+px0*rel_p*(cy*sx-sy)*y0+rel_p*x0*(py0*(cx*sy-sx)+(cx*cy-1.0_rp)*rel_p*y0)))
   
   zeta = sqrt(a**2 + b**2 + cc**2)
+=======
+   cx = (1.0_rp-c)/omega**2
+   sx = s/omega
+   cy = (-1.0_rp+ch)/omega**2
+   sy = sh/omega
+  else
+   cy = (1.0_rp-c)/omega**2
+   sy = s/omega
+   cx = (-1.0_rp+ch)/omega**2
+   sx = sh/omega
+  endif
+ 
+  a = 0.5_rp*chi*k1*(sy*y0+cy*py0/rel_p)
+  b = 0.5_rp*chi*k1*(sx*x0+cx*px0/rel_p)
+  
+  zeta = sqrt(a**2 + b**2)
+>>>>>>> upstream/main
   sc = sinc(zeta)
   
   quat(1) = -cos(zeta)
   quat(2) = a*sc
   quat(3) = b*sc
+<<<<<<< HEAD
   quat(4) = cc*sc
+=======
+>>>>>>> upstream/main
 
 ! Sextupole
 
 case (sextupole$)
   k2 = ele%value(k2$)
   
+<<<<<<< HEAD
   ! First kick of a kick-drift-kick split
   px0 = px0 + 0.25_rp*k2*L*(y0**2-x0**2)
   py0 = py0 + 0.5_rp*k2*L*x0*y0
@@ -686,12 +788,27 @@ case (sextupole$)
   cc = cc * k2*L*xi/(12.0_rp*pl**2*rel_p**2)
   
   zeta = sqrt(a**2 + b**2 + cc**2)
+=======
+  a = L*py0*(2.0_rp*L*px0+3.0_rp*rel_p*x0)
+  a = a + 3.0_rp*rel_p*y0*(L*px0+2.0_rp*rel_p*x0)
+  a = a * k2*L*chi/(12.0_rp*rel_p**3)
+  
+  b = L**2*(px0**2-py0**2)
+  b = b + 3.0_rp*rel_p**2*(x0**2-y0**2)
+  b = b + 3.0_rp*L*rel_p*(px0*x0-py0*y0)
+  b = b * k2*L*chi/(12.0_rp*rel_p**3)
+  
+  zeta = sqrt(a**2 + b**2)
+>>>>>>> upstream/main
   sc = sinc(zeta)
   
   quat(1) = -cos(zeta)
   quat(2) = a*sc
   quat(3) = b*sc
+<<<<<<< HEAD
   quat(4) = cc*sc
+=======
+>>>>>>> upstream/main
 
 
 case default
@@ -700,7 +817,11 @@ case default
 
 end select
 
+<<<<<<< HEAD
 omega_vec = quat_to_omega(quat)
+=======
+omega_vec = quat_to_omega(quat/norm2(quat))
+>>>>>>> upstream/main
 
 end function magnus_omega
 

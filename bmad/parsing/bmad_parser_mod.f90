@@ -26,6 +26,41 @@ contains
 !-------------------------------------------------------------------------
 !-------------------------------------------------------------------------
 !+
+! Function nint_chk (re_val) result (int_val)
+!
+! Returns the nearest integer to re_val.
+! Also does out-of-bounds error checking.
+! Used with bmad parsing.
+!
+! Input:
+!   re_val        -- real(rp): Input real number.
+!
+! Output:
+!   int_val       -- integer: Output nearest integer.
+!-
+
+function nint_chk (re_val) result (int_val)
+
+implicit none
+
+real(rp), intent(in) :: re_val
+integer int_val
+
+!
+
+if (abs(re_val) > huge(int_val) + 0.5_rp) then
+  call parser_error('NUMBER: ' // real_str(re_val, n_decimal = 0) // ' IS LARGER THAN THE RANGE OF INTEGER*4 VARIABLES.')
+  int_val = int_garbage$
+else
+  int_val = nint(re_val)
+endif
+
+end function nint_chk
+
+!-------------------------------------------------------------------------
+!-------------------------------------------------------------------------
+!-------------------------------------------------------------------------
+!+
 ! This subroutine is used by bmad_parser and bmad_parser2.
 ! This subroutine is not intended for general use.
 !-
@@ -5001,6 +5036,18 @@ case (taylor$)
   endif
 
 !------------------
+
+case (beambeam$)
+
+if (ele%value(species_strong$) /= real_garbage$) then
+  if (ele%value(pc_strong$) >= 0) then
+    call convert_pc_to(ele%value(pc_strong$), nint(ele%value(species_strong$)), E_tot = ele%value(E_tot_strong$))
+  elseif (ele%value(E_tot_strong$) > 0) then
+    call convert_total_energy_to(ele%value(E_tot_strong$), nint(ele%value(species_strong$)), pc = ele%value(pc_strong$))
+  endif
+endif
+
+!------------------
 ! Note: Dispersion will be handled by twiss_propagate1.
 
 case (beginning_ele$)
@@ -5182,6 +5229,16 @@ case (crab_cavity$)
     endif
   else
     ele%value(voltage$) = ele%value(gradient$) * ele%value(l$)
+  endif
+
+!------------------
+
+case (multipole$)
+  if (associated(ele%a_pole)) then
+    if (ele%a_pole(0) /= 0) then
+      call parser_error ('MULTIPOLE: ' // ele%name, &
+                         'CANNOT HAVE A FINITE K0L VALUE. SEE THE BMAD MANUAL FOR DETAILS.')
+    endif
   endif
 
 !------------------

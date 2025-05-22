@@ -266,6 +266,10 @@ if (ele%a%dbeta_dpz /= 0)   write (iu, '(2a)') 'beginning[dbeta_dpz_a]  = ', re_
 if (ele%b%dbeta_dpz /= 0)   write (iu, '(2a)') 'beginning[dbeta_dpz_b]  = ', re_str(ele%b%dbeta_dpz)
 if (ele%a%dalpha_dpz /= 0)  write (iu, '(2a)') 'beginning[dalpha_dpz_a] = ', re_str(ele%a%dalpha_dpz)
 if (ele%b%dalpha_dpz /= 0)  write (iu, '(2a)') 'beginning[dalpha_dpz_b] = ', re_str(ele%b%dalpha_dpz)
+if (ele%x%deta_dpz /= 0)    write (iu, '(2a)') 'beginning[deta_dpz_x]   = ', re_str(ele%x%deta_dpz)
+if (ele%y%deta_dpz /= 0)    write (iu, '(2a)') 'beginning[deta_dpz_y]   = ', re_str(ele%y%deta_dpz)
+if (ele%x%detap_dpz /= 0)   write (iu, '(2a)') 'beginning[detap_dpz_x]  = ', re_str(ele%x%detap_dpz)
+if (ele%y%detap_dpz /= 0)   write (iu, '(2a)') 'beginning[detap_dpz_y]  = ', re_str(ele%y%detap_dpz)
 
 ! particle_start. Note: For an open geometry, orbit0 should be the same as lat%particle_start
 
@@ -844,6 +848,7 @@ do ib = 0, ubound(lat%branch, 1)
 
       if (attrib%name == 'E_TOT') cycle        ! Will use p0c instead.
       if (attrib%name == 'E_TOT_START') cycle  ! Will use p0c_start instead.
+      if (attrib%name == 'E_TOT_STRONG') cycle  ! Will use pc_strong instead.
       if (attrib%name == null_name$) then
         call out_io (s_error$, r_name, 'ELEMENT: ' // ele%name, 'HAS AN UNKNOWN ATTRIBUTE INDEX: \i0\ ', i_array = [j])
         if (global_com%exit_on_error) call err_exit

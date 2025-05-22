@@ -409,12 +409,13 @@ subroutine allocate_element_array (ele, upper_bound)
   integer, optional :: upper_bound
 end subroutine
 
-subroutine allocate_lat_ele_array (lat, upper_bound, ix_branch)
+subroutine allocate_lat_ele_array (lat, upper_bound, ix_branch, do_ramper_slave_setup)
   import
   implicit none
   type (lat_struct), target :: lat
   integer, optional :: upper_bound
   integer, optional :: ix_branch
+  logical, optional :: do_ramper_slave_setup
 end subroutine
 
 subroutine aml_parser (lat_file, lat, make_mats6, digested_read_ok, use_line, err_flag)
@@ -2038,7 +2039,7 @@ function particle_is_moving_forward (orbit, dir) result (is_moving_forward)
   logical is_moving_forward
 end function
 
-function particle_rf_time (orbit, ele, reference_active_edge, s_rel, time_coords, rf_freq, rf_clock_harmonic) result (time)
+function particle_rf_time (orbit, ele, reference_active_edge, s_rel, time_coords, rf_freq, rf_clock_harmonic, abs_time) result (time)
   import
   implicit none
   type (coord_struct) orbit
@@ -2046,7 +2047,7 @@ function particle_rf_time (orbit, ele, reference_active_edge, s_rel, time_coords
   real(rp), optional :: s_rel, rf_freq
   real(rp) time
   integer, optional :: rf_clock_harmonic
-  logical, optional :: reference_active_edge, time_coords
+  logical, optional :: reference_active_edge, time_coords, abs_time
 end function
 
 function patch_flips_propagation_direction (x_pitch, y_pitch) result (is_flip)
@@ -2162,6 +2163,15 @@ function pointer_to_next_ele (this_ele, offset, skip_beginning, follow_fork) res
   type (ele_struct), pointer :: next_ele
   integer, optional :: offset
   logical, optional :: skip_beginning, follow_fork
+end function
+
+function pointer_to_super_lord (slave, control, ix_slave_back, ix_control, ix_ic) result (lord_ptr)
+  import
+  implicit none
+  type (ele_struct), target :: slave
+  type (control_struct), pointer, optional :: control
+  type (ele_struct), pointer :: lord_ptr
+  integer, optional :: ix_slave_back, ix_control, ix_ic
 end function
 
 function pointer_to_wake_ele (ele, delta_s) result (wake_ele)
@@ -3531,6 +3541,17 @@ subroutine type_ele (ele, type_zero_attrib, type_mat6, type_taylor, twiss_out, t
   integer, optional, intent(in) :: twiss_out, type_field, type_control
   logical, optional, intent(in) :: type_taylor, type_floor_coords
   logical, optional, intent(in) :: type_zero_attrib, type_wake, type_wall, type_rad_kick
+  character(*), optional, allocatable :: lines(:)
+end subroutine
+
+subroutine type_taylors (bmad_taylor, max_order, lines, n_lines, file_id, out_style, clean, out_var_suffix)
+  import
+  implicit none
+  type (taylor_struct), intent(in), target :: bmad_taylor(:)
+  integer, optional, intent(out) :: n_lines
+  integer, optional :: max_order, file_id
+  logical, optional :: clean
+  character(*), optional :: out_style, out_var_suffix
   character(*), optional, allocatable :: lines(:)
 end subroutine
 
